@@ -6,27 +6,45 @@ const STANDARD_EXERCISES = [
   'Swing',
 ];
 
-const BLOCK_DURATION_SECONDS = 120;
 const ROUNDS_PER_SESSION = 3;
 const REST_BETWEEN_ROUNDS_SECONDS = 60;
 
+/**
+ * Training performance captured for a single exercise block.
+ * Stores effort and output metrics so each workout works as a log entry.
+ */
 const exerciseBlockSchema = new mongoose.Schema(
   {
     exercise: {
       type: String,
       required: true,
-      enum: STANDARD_EXERCISES,
+      trim: true,
     },
     durationSeconds: {
       type: Number,
       required: true,
       min: 1,
-      default: BLOCK_DURATION_SECONDS,
+    },
+    weight: {
+      type: Number,
+      min: 0,
+    },
+    reps: {
+      type: Number,
+      min: 0,
+    },
+    rpe: {
+      type: Number,
+      min: 1,
+      max: 10,
     },
   },
   { _id: false }
 );
 
+/**
+ * Round container that keeps a predictable 3-round session structure.
+ */
 const roundSchema = new mongoose.Schema(
   {
     roundNumber: {
@@ -47,18 +65,10 @@ const roundSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const createDefaultBlocks = () =>
-  STANDARD_EXERCISES.map((exercise) => ({
-    exercise,
-    durationSeconds: BLOCK_DURATION_SECONDS,
-  }));
-
-const createDefaultRounds = () =>
-  Array.from({ length: ROUNDS_PER_SESSION }, (_, index) => ({
-    roundNumber: index + 1,
-    blocks: createDefaultBlocks(),
-  }));
-
+/**
+ * Training log entry schema.
+ * Includes structure defaults plus per-workout metadata and audit timestamps.
+ */
 const workoutSchema = new mongoose.Schema(
   {
     title: {
@@ -69,7 +79,6 @@ const workoutSchema = new mongoose.Schema(
     rounds: {
       type: [roundSchema],
       required: true,
-      default: createDefaultRounds,
       validate: {
         validator: (rounds) => rounds.length === ROUNDS_PER_SESSION,
         message: `A workout session must include exactly ${ROUNDS_PER_SESSION} rounds.`,
@@ -91,7 +100,7 @@ const workoutSchema = new mongoose.Schema(
   }
 );
 
-// Virtual exposes the fixed work volume to simplify API responses and dashboards.
+// Virtual exposes calculated work volume for API responses and dashboards.
 workoutSchema.virtual('totalWorkDurationSeconds').get(function totalWorkDurationSeconds() {
   return this.rounds.reduce(
     (roundTotal, round) =>

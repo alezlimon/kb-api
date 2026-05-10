@@ -20,6 +20,39 @@ const buildRounds = () =>
     })),
   }));
 
+/**
+ * Converts Mongoose validation details into a field-based object for API consumers.
+ */
+const mapValidationErrors = (errors) =>
+  Object.values(errors).reduce((accumulator, currentError) => {
+    accumulator[currentError.path] = currentError.message;
+    return accumulator;
+  }, {});
+
+const createWorkout = async (req, res) => {
+  try {
+    const workoutPayload = req.body;
+    const workout = await Workout.create(workoutPayload);
+
+    return res.status(201).json({
+      message: 'Workout created successfully',
+      data: workout,
+    });
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'Invalid workout payload. Please review required fields and value ranges.',
+        errors: mapValidationErrors(error.errors),
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Error creating workout',
+      error: error.message,
+    });
+  }
+};
+
 const seedWorkout = async (_req, res) => {
   try {
     const workout = await Workout.create({
@@ -164,6 +197,7 @@ const deleteWorkout = async (req, res) => {
 };
 
 module.exports = {
+  createWorkout,
   seedWorkout,
   getWorkouts,
   getWorkoutById,

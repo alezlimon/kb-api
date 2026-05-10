@@ -1,6 +1,7 @@
 const express = require('express');
 
 const {
+	createWorkout,
 	seedWorkout,
 	getWorkouts,
 	getWorkoutById,
@@ -11,6 +12,7 @@ const {
 const router = express.Router();
 
 router.get('/', getWorkouts);
+router.post('/', createWorkout);
 router.get('/:id', getWorkoutById);
 router.post('/seed', seedWorkout);
 router.put('/:id', updateWorkout);
